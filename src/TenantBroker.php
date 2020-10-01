@@ -2,13 +2,12 @@
 
 namespace RenanFenrich\TenantBroker;
 
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Config\Repository as Config;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use RenanFenrich\TenantBroker\Models\Tenant;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\DatabaseManager;
+use Illuminate\Config\Repository as Config;
+use Illuminate\Auth\AuthenticationException;
 
 class TenantBroker
 {
@@ -167,15 +166,20 @@ class TenantBroker
     {
         $this->configureBrokerDatabase();
 
-        $tenant = Tenant::whereHas('database')
-            ->with('database')
-            ->where('domain', $domain)
-            ->first();
+        $tenant = DB::table('tenants')->where('tenants.domain', $domain)->first();
 
-        if ($config = $tenant->toArray()) {
-            $this->config->set('tenant.active', $config);
+        if ($tenant) {
+            $database = DB::table('databases')
+                ->select('host', 'username', 'password', 'database')
+                ->where('tenant_id', $tenant->id)->first();
 
-            return $config;
+            if ($database) {
+                $config = (array) $tenant + ['database' => (array) $database];
+
+                $this->config->set('tenant.active', $config);
+
+                return $config;
+            }
         }
     }
 
