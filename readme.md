@@ -11,6 +11,28 @@ Publish configuration file
 
 ``` bash
 $ php artisan vendor:publish --tag tenant.config
+
+```
+
+Example configuration file for local development
+ex.: config/tenants/nasa.php
+
+``` php
+<?php
+
+return [
+    'alias' => 'nasa',
+    'connection' => 'mysql',
+    'domain' => 'nasa.gov.us',
+    'database' => [
+        'host' => 'mysql.nasa.gov.us',
+        'database' => 'jpl',
+        'username' => 'root',
+        'password' => 'voyager1',
+    ]
+];
+
+
 ```
 
 ## Change log
