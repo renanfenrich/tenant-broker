@@ -5,6 +5,7 @@ namespace RenanFenrich\TenantBroker;
 use RenanFenrich\TenantBroker\TenantBroker;
 use RenanFenrich\TenantBroker\UrlGenerator;
 use Illuminate\Routing\RoutingServiceProvider;
+use RenanFenrich\TenantBroker\Middlewares\HandleApiTenants;
 
 class TenantBrokerServiceProvider extends RoutingServiceProvider
 {
@@ -42,6 +43,7 @@ class TenantBrokerServiceProvider extends RoutingServiceProvider
         $this->app->tag(['tenantbroker'], 'tenant');
 
         $this->registerUrlGenerator();
+        $this->registerMiddlewares();
     }
 
     /**
@@ -95,5 +97,11 @@ class TenantBrokerServiceProvider extends RoutingServiceProvider
                 $app['config']['app.asset_url']
             );
         });
+    }
+
+    protected function registerMiddlewares()
+    {
+        $this->app['router']->prependMiddlewareToGroup('api', HandleApiTenants::class);
+        $this->app['router']->prependMiddlewareToGroup('web', HandleWebTenants::class);
     }
 }
