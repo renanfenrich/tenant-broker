@@ -6,6 +6,7 @@
 ``` bash
 $ composer require renanfenrich/tenant-broker
 ```
+## Configuration
 
 Publish configuration file
 
@@ -14,8 +15,9 @@ $ php artisan vendor:publish --tag tenant.config
 
 ```
 
-Example configuration file for local development
-ex.: config/tenants/nasa.php
+Configuration files for local development should be created at "config/tenants/".
+
+Example:
 
 ``` php
 <?php
