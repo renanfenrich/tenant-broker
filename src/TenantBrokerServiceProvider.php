@@ -2,10 +2,11 @@
 
 namespace RenanFenrich\TenantBroker;
 
-use RenanFenrich\TenantBroker\TenantBroker;
-use RenanFenrich\TenantBroker\UrlGenerator;
 use Illuminate\Routing\RoutingServiceProvider;
 use RenanFenrich\TenantBroker\Middlewares\HandleApiTenants;
+use RenanFenrich\TenantBroker\Middlewares\HandleWebTenants;
+use RenanFenrich\TenantBroker\TenantBroker;
+use RenanFenrich\TenantBroker\UrlGenerator;
 
 class TenantBrokerServiceProvider extends RoutingServiceProvider
 {
