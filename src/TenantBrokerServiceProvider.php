@@ -2,8 +2,9 @@
 
 namespace RenanFenrich\TenantBroker;
 
+use Illuminate\Routing\Router;
 use Illuminate\Routing\RoutingServiceProvider;
-use RenanFenrich\TenantBroker\Middlewares\HandleApiTenants;
+use RenanFenrich\TenantBroker\Middlewares\TenantDatabaseConnector;
 use RenanFenrich\TenantBroker\TenantBroker;
 use RenanFenrich\TenantBroker\UrlGenerator;
 
@@ -42,8 +43,9 @@ class TenantBrokerServiceProvider extends RoutingServiceProvider
 
         $this->app->tag(['tenantbroker'], 'tenant');
 
+        $this->registerMiddleware();
+
         $this->registerUrlGenerator();
-        $this->registerMiddlewares();
     }
 
     /**
@@ -67,9 +69,6 @@ class TenantBrokerServiceProvider extends RoutingServiceProvider
         $this->publishes([
             __DIR__ . '/../config/tenant.php' => config_path('tenant.php'),
         ], 'tenant.config');
-
-        // Registering package commands.
-        // $this->commands([]);
     }
 
     /**
@@ -99,8 +98,16 @@ class TenantBrokerServiceProvider extends RoutingServiceProvider
         });
     }
 
-    protected function registerMiddlewares()
+    protected function registerMiddleware()
     {
-        $this->app['router']->prependMiddlewareToGroup('api', HandleApiTenants::class);
+        $middlewareGroups = $this->app['config']->get('tenant.middleware_groups');
+
+        foreach ($middlewareGroups as $group) {
+            $this->app['router']
+                ->prependMiddlewareToGroup(
+                    $group,
+                    TenantDatabaseConnector::class
+                );
+        }
     }
 }

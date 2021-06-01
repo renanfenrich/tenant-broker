@@ -47,7 +47,7 @@ class UrlGenerator extends CoreUrlGenerator
 
             if (
                 isset($actions['domain'])
-                && $actions['domain'] == $this->tenant->getFullDomain()
+                && $actions['domain'] == $this->tenant->getDomainRoute()
             ) {
                 $parameters = $this->mergeSubDomainParameters($route, $parameters);
             }

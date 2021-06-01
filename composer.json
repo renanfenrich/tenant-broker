@@ -1,6 +1,7 @@
 {
     "name": "renanfenrich/tenant-broker",
     "description": "A database connector for Laravel multi-tenancy broker",
+    "version": "1.2.0",
     "license": "MIT",
     "authors": [
         {

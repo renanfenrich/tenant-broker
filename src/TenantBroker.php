@@ -12,34 +12,30 @@ use Illuminate\Auth\AuthenticationException;
 class TenantBroker
 {
     /**
-     * The request instance.
-     */
-    public $request;
-
-    /**
-     * The tenant.
-     */
-    public $alias;
-    /**
-     * The application instance.
-     *
-     * @var \Illuminate\Contracts\Foundation\Application
-     */
-    protected $app;
-
-    /**
      * The config repository instance.
+     *
+     * @var \Illuminate\Config\Repository
+     */
+    protected $config;
+
+    /**
+     * The database manager instance.
      *
      * @var \Illuminate\Database\DatabaseManager
      */
     protected $database;
 
     /**
-     * Tenant host from request.
+     * Request host sub and domain parts
      *
-     * @var string
+     * @var array
      */
-    protected $domain;
+    public $host;
+
+    /**
+     * The HTTP request instance.
+     */
+    public $request;
 
     public function __construct(
         Config $config,
@@ -54,18 +50,19 @@ class TenantBroker
     /**
      * Reconnect database using tenant.
      *
-     * @param string $domain
+     * @param string $alias
      */
-    public function reconnectDatabaseUsing($domain)
+    public function reconnectDatabaseUsing($alias)
     {
-        if ($tenant = $this->getTenant($domain)) {
+        if ($tenant = $this->getTenantConfig($alias)) {
             $config = $this->mergeDatabaseConfig($tenant['database']);
+            $connection = $tenant['connection'];
 
-            $this->config->set('database.connections.tenant', $config);
+            $this->config->set("database.connections.$connection", $config);
 
-            $this->database->setDefaultConnection('tenant');
+            $this->database->setDefaultConnection($connection);
 
-            return $this->database->reconnect();
+            return $this->database->reconnect($connection);
         }
 
         return false;
@@ -86,55 +83,101 @@ class TenantBroker
     /**
      * Return tenant configuration from broker database.
      *
-     * @param string $domain
+     * @param string $alias
      */
-    public function getTenant($domain)
+    public function getTenantConfig($alias)
     {
         if ($this->config->get('tenant.local')) {
-            return $this->getTenantFromFile($domain);
+            return $this->getConfigFromFile($alias);
         }
 
-        return $this->getTenantFromDatabase($domain);
+        return $this->getConfigFromDatabase($alias);
     }
 
     /**
-     * Get application root domain.
+     * Get application host.
      *
      * @return string
+     */
+    private function setHost()
+    {
+        $host = $this->request->getHost();
+
+        $parts = explode('.', $host, 2);
+
+        $this->host = array_combine(['alias', 'domain'], $parts);
+    }
+
+    /**
+     * Get tenant alias from host
+     *
+     * @return void
+     */
+    public function getAlias()
+    {
+        return $this->host['alias'];
+    }
+
+    /**
+     * Get domain from host
+     *
+     * @return void
      */
     public function getDomain()
     {
-        return $this->config->get('tenant.domain');
+        return $this->host['domain'];
     }
 
     /**
-     * Generate route domain wildcard.
+     * Generate route host wildcard.
      *
      * @return string
      */
-    public function getFullDomain()
+    public function getDomainRoute()
     {
         $param = $this->config->get('tenant.param');
-        $domain = $this->config->get('tenant.domain');
+        $host = $this->getDomain();
 
-        return sprintf('{%s}.%s', $param, $domain);
+        return sprintf('{%s}.%s', $param, $host);
     }
 
     /**
      * Check request for tenant host.
      *
-     * @param [type] $guard
+     * @return string
      */
-    public function getCurrentTenant($guard)
+    public function getCurrentTenant()
     {
-        if ('api' == $guard) {
-            return $this->request->header(
-                $this->config->get('tenant.header_host'),
-                null
-            );
+        $this->setHost();
+
+        if ($this->request->expectsJson()) {
+            return $this->getTenantFromHeader();
         }
 
-        return $this->request->getHost();
+        return $this->getTenantFromRequest();
+    }
+
+    /**
+     * Return tenant name from header
+     *
+     * @return void
+     */
+    private function getTenantFromHeader()
+    {
+        return $this->request->header(
+            $this->config->get('tenant.header_alias'),
+            null
+        );
+    }
+
+    /**
+     * Return tenant name from request host
+     *
+     * @return void
+     */
+    private function getTenantFromRequest()
+    {
+        return $this->host['alias'];
     }
 
     /**
@@ -158,15 +201,15 @@ class TenantBroker
     /**
      * Get tenant configuration from broker database.
      *
-     * @param string $domain
+     * @param string $alias
      *
      * @return null|array
      */
-    protected function getTenantFromDatabase($domain)
+    protected function getConfigFromDatabase($alias)
     {
         $this->configureBrokerDatabase();
 
-        $tenant = DB::table('tenants')->where('tenants.domain', $domain)->first();
+        $tenant = DB::table('tenants')->where('tenants.alias', $alias)->first();
 
         if ($tenant) {
             $database = DB::table('databases')
@@ -186,13 +229,13 @@ class TenantBroker
     /**
      * Get tenant configuration from local config folder.
      *
-     * @param string $domain
+     * @param string $alias
      *
      * @return null|array
      */
-    protected function getTenantFromFile($domain)
+    protected function getConfigFromFile($alias)
     {
-        if ($config = $this->config->get("tenants.{$domain}")) {
+        if ($config = $this->config->get("tenants.{$alias}")) {
             return $config;
         }
     }

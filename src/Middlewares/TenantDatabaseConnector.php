@@ -4,24 +4,17 @@ namespace RenanFenrich\TenantBroker\Middlewares;
 
 use Closure;
 use RenanFenrich\TenantBroker\TenantBroker;
-use Illuminate\Contracts\Routing\UrlGenerator;
 
-class HandleWebTenants
+class TenantDatabaseConnector
 {
     /**
      * @var TenantBroker
      */
     protected $tenant;
 
-    /**
-     * @var UrlGenerator
-     */
-    protected $url;
-
-    public function __construct(TenantBroker $tenant, UrlGenerator $url)
+    public function __construct(TenantBroker $tenant)
     {
         $this->tenant = $tenant;
-        $this->url = $url;
     }
 
     /**
@@ -33,8 +26,10 @@ class HandleWebTenants
      */
     public function handle($request, Closure $next)
     {
-        if ($domain = $this->tenant->getCurrentTenant('web')) {
-            if ($this->tenant->reconnectDatabaseUsing($domain)) {
+        $this->tenant->validadeToken();
+
+        if ($host = $this->tenant->getCurrentTenant()) {
+            if ($this->tenant->reconnectDatabaseUsing($host)) {
                 return $next($request);
             }
         }

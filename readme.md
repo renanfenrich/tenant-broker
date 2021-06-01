@@ -23,9 +23,7 @@ Example:
 <?php
 
 return [
-    'alias' => 'nasa',
     'connection' => 'mysql',
-    'domain' => 'nasa.gov.us',
     'database' => [
         'host' => 'mysql.nasa.gov.us',
         'database' => 'jpl',
